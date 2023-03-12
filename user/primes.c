@@ -16,37 +16,40 @@ main(int argc, char *argv[])
 	}
 
 	pipe(p);
-	close(p[0]);
 
-	int num[36];
-	for(i = 1; i < 36; i++){
-		num[i] = i;
-		write(p[1], &num[i], intsize);
+	for(i = 2; i < 36; i++){
+		write(p[1], &i, intsize);
 	}
 
-	int cnt = 0;
 	while((pid = fork()) == 0){
+		close(p[1]);
 		int first, prime; 
-		int fa = p[1];
-		pipe(p);
-		close(p[0]);
+		int fa = p[0];
 
-		if(read(fa, &first, intsize) != 0)printf("prime %d\n", first);
+		if(pipe(p) < 0){
+			fprintf(2, "pipe fail\n");
+			exit(1);
+		}
+
+		if(read(fa, &first, intsize) != 0)fprintf(1, "prime %d\n", first);
 		else break;
-		printf("%d %d\n", ++cnt, first);
 
 		while(read(fa, &prime, intsize) != 0){
 			if(prime % first != 0)write(p[1], &prime, intsize);
 		}
-
 		close(fa);
+
 	}
 
 	if(pid < 0){
 		fprintf(2, "fork error!");
 		exit(1);
 	}
-	else if(pid > 0)wait(0);
+	else if(pid > 0){
+		close(p[0]);
+		close(p[1]);
+		wait(0);
+	}
 
 	exit(0);
 }
